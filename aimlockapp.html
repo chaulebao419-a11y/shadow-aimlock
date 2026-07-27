@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shadow AimLock</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;500;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background: #000000;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: #fff;
+            position: fixed;
+            overscroll-behavior: none;
+        }
+
+        #fullscreenOverlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* KHUNG NHẬP KEY */
+        #keySystemModal {
+            position: fixed;
+            width: 90%;
+            max-width: 380px;
+            background: rgba(12, 12, 18, 0.95);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 56, 56, 0.6);
+            border-radius: 20px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 
+                        0 0 40px rgba(255, 56, 56, 0.25),
+                        inset 0 0 15px rgba(255, 56, 56, 0.05);
+            padding: 24px 20px;
+            z-index: 10;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: modalFloat 4s ease-in-out infinite;
+        }
+
+        @keyframes modalFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .key-badge-top {
+            display: inline-block;
+            background: rgba(255, 56, 56, 0.15);
+            color: #ff3838;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 56, 56, 0.4);
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        #keySystemModal h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 8px;
+            text-shadow: 0 0 15px rgba(255, 56, 56, 0.6);
+            letter-spacing: 0.5px;
+        }
+
+        #keySystemModal h3 span {
+            color: #ff3838;
+        }
+
+        #keySystemModal p {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .key-input-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .key-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 14px;
+            color: #fff;
+            font-size: 12px;
+            text-align: center;
+            outline: none;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .key-input:focus {
+            border-color: #ff3838;
+            background: rgba(255, 56, 56, 0.03);
+            box-shadow: 0 0 20px rgba(255, 56, 56, 0.35);
+        }
+
+        /* Nút dán key nhỏ bên cạnh cho iPhone */
+        .paste-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: #fff;
+            padding: 0 14px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .paste-btn:active {
+            background: rgba(255, 56, 56, 0.3);
+            border-color: #ff3838;
+            transform: scale(0.95);
+        }
+
+        .key-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #ff3838, #b31414);
+            border: none;
+            border-radius: 12px;
+            padding: 12px;
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(255, 56, 56, 0.45);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .get-key-link {
+            font-size: 11px;
+            color: #ff9f43;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        /* MENU MOD CHÍNH */
+        .mod-menu {
+            width: 92%;
+            max-width: 420px;
+            max-height: 85vh;
+            background: rgba(10, 10, 15, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 56, 56, 0.4);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 56, 56, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 2;
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            pointer-events: none;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            position: absolute;
+        }
+
+        .mod-menu.unlocked {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .menu-header {
+            background: linear-gradient(135deg, rgba(255, 56, 56, 0.15), rgba(15, 15, 25, 0.9));
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 56, 56, 0.25);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .menu-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, #ff3838, transparent);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .menu-header h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 56, 56, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .menu-header h2 span {
+            color: #ff3838;
+        }
+
+        .header-info-badges {
+            display: flex;
+            gap: 5px;
+        }
+
+        .badge {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 8px;
+            padding: 3px 6px;
+            border-radius: 5px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-fps {
+            background: rgba(241, 196, 15, 0.15);
+            color: #f1c40f;
+            border: 1px solid rgba(241, 196, 15, 0.4);
+        }
+
+        .badge-status {
+            background: rgba(46, 213, 115, 0.15);
+            color: #2ed573;
+            border: 1px solid rgba(46, 213, 115, 0.4);
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .header-sub {
+            font-size: 10px;
+            color: #8b9bb4;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        .header-sub span.expiry-highlight {
+            color: #ff9f43;
+            font-weight: 600;
+        }
+
+        .menu-body {
+            padding: 12px 16px;
+            overflow-y: auto;
+            flex-grow: 1;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .menu-body::-webkit-scrollbar {
+            width: 3px;
+        }
+        .menu-body::-webkit-scrollbar-thumb {
+            background: rgba(255, 56, 56, 0.3);
+            border-radius: 4px;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 9px;
+            color: #ff9f43;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 9px;
+            background: #ff3838;
+            border-radius: 2px;
+        }
+
+        .feature-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .feature-item .ripple {
+            position: absolute;
+            background: rgba(255, 56, 56, 0.3);
+            transform: scale(0);
+            border-radius: 50%;
+            animation: rippleAnim 0.4s linear;
+            pointer-events: none;
+        }
+
+        @keyframes rippleAnim {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .feature-info .f-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #f1f2f6;
+            letter-spacing: 0.3px;
+        }
+
+        .feature-info .f-desc {
+            font-size: 9px;
+            color: #718093;
+            margin-top: 1px;
+        }
+
+        .feature-item.main-aimlock {
+            background: linear-gradient(135deg, rgba(255, 56, 56, 0.08), rgba(255, 255, 255, 0.02));
+            border: 1px solid rgba(255, 56, 56, 0.35);
+            margin-bottom: 0;
+        }
+
+        #subFeatures {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #subFeatures.show-sub {
+            max-height: 300px;
+            opacity: 1;
+            margin-top: 6px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 38px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #1e1e2f;
+            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #fff;
+            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        input:checked + .slider {
+            background-color: #2ed573;
+            border-color: #2ed573;
+            box-shadow: 0 0 10px rgba(46, 213, 115, 0.4);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(18px);
+        }
+
+        .menu-footer {
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.5);
+            text-align: center;
+            font-size: 9px;
+            color: #ff6b81;
+            font-weight: 600;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        #toast {
+            visibility: hidden;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(13, 13, 22, 0.95);
+            backdrop-filter: blur(16px);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 10px;
+            z-index: 1000;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.1);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        #toast .toast-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="fullscreenOverlay"></div>
+
+    <!-- KHUNG NHẬP KEY -->
+    <div id="keySystemModal">
+        <div class="key-badge-top">Shadow Authentication</div>
+        <h3>Shadow <span>KEY SYSTEM</span></h3>
+        <p>Vui lòng nhập mã bản quyền hợp lệ để kích hoạt hệ thống Shadow AimLock</p>
+        <div class="key-input-wrapper">
+            <input type="text" id="keyInput" class="key-input" placeholder="AIMLOCK-SAE-XXXX-XXXX">
+            <button type="button" class="paste-btn" onclick="pasteKey()" title="Dán Key">📋</button>
+        </div>
+        <button class="key-btn" onclick="verifyKey()">XÁC NHẬN KÍCH HOẠT</button>
+        <a href="#" class="get-key-link" onclick="getKeyAlert(event)">
+            <span>🔑</span> Lấy Key Truy Cập Tại Đây
+        </a>
+    </div>
+
+    <!-- MENU MOD CHÍNH -->
+    <div class="mod-menu" id="modMenu">
+        <div class="menu-header">
+            <div class="header-top">
+                <h2>Shadow <span>AimLock</span></h2>
+                <div class="header-info-badges">
+                    <span class="badge badge-fps" id="fpsBadge">120 FPS</span>
+                    <span class="badge badge-status">ACTIVE</span>
+                </div>
+            </div>
+            <div class="header-sub">
+                <span id="keyTypeBadge">Gói: Đang tải...</span>
+                <span class="expiry-highlight" id="expiryBadge">HSD: --</span>
+            </div>
+        </div>
+
+        <div class="menu-body">
+            <div class="section-title">Hệ Thống Chính</div>
+
+            <div class="feature-item main-aimlock" onclick="triggerCardClick(event, 'mainAimlockToggle')">
+                <div class="feature-info">
+                    <div class="f-name" style="color: #ff4d4d; font-weight: 700;">SHADOW AIMLOCK</div>
+                    <div class="f-desc">Kích hoạt tổng thể hệ thống hỗ trợ</div>
+                </div>
+                <label class="switch" onclick="event.stopPropagation()">
+                    <input type="checkbox" id="mainAimlockToggle" onchange="toggleMainAimlock(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div id="subFeatures">
+                <div class="section-title" style="margin-top: 8px;">Chức Năng Hỗ Trợ</div>
+
+                <div class="feature-item" onclick="triggerCardClick(event, 'sub1')">
+                    <div class="feature-info">
+                        <div class="f-name">Bám đầu</div>
+                        <div class="f-desc">Hỗ trợ bắt tâm vào đầu địch tự động</div>
+                    </div>
+                    <label class="switch" onclick="event.stopPropagation()">
+                        <input type="checkbox" id="sub1" onchange="toggleFeature('Bám đầu', this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="feature-item" onclick="triggerCardClick(event, 'sub2')">
+                    <div class="feature-info">
+                        <div class="f-name">Nhẹ Tâm</div>
+                        <div class="f-desc">Giúp tâm kéo mượt và nhạy hơn</div>
+                    </div>
+                    <label class="switch" onclick="event.stopPropagation()">
+                        <input type="checkbox" id="sub2" onchange="toggleFeature('Nhẹ Tâm', this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="feature-item" onclick="triggerCardClick(event, 'sub3')">
+                    <div class="feature-info">
+                        <div class="f-name">Giảm rung tâm</div>
+                        <div class="f-desc">Hạn chế tối đa độ giật của súng</div>
+                    </div>
+                    <label class="switch" onclick="event.stopPropagation()">
+                        <input type="checkbox" id="sub3" onchange="toggleFeature('Giảm rung tâm', this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="feature-item" onclick="triggerCardClick(event, 'sub4')">
+                    <div class="feature-info">
+                        <div class="f-name">Giảm lố đầu</div>
+                        <div class="f-desc">Chống văng tâm qua khỏi đầu địch</div>
+                    </div>
+                    <label class="switch" onclick="event.stopPropagation()">
+                        <input type="checkbox" id="sub4" onchange="toggleFeature('Giảm lố đầu', this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="feature-item" onclick="triggerCardClick(event, 'sub5')">
+                    <div class="feature-info">
+                        <div class="f-name">Đạn thẳng 20%</div>
+                        <div class="f-desc">Ổn định đường bay của đạn</div>
+                    </div>
+                    <label class="switch" onclick="event.stopPropagation()">
+                        <input type="checkbox" id="sub5" onchange="toggleFeature('Đạn thẳng 20%', this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-footer">
+            Admin: Thanhdat | Zalo: 0905645797
+        </div>
+    </div>
+
+    <div id="toast">
+        <div class="toast-dot" id="toastDot"></div>
+        <span id="toastText">Thông báo hệ thống</span>
+    </div>
+
+    <script>
+        const DATABASE_KEYS = {
+            "AIMLOCK-SAE-4892-7103": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-9154-3826": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-6321-8495": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-2048-5912": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-7319-4680": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-1865-9243": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-5490-1378": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-8237-4501": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-3912-6849": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-6741-2053": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-1582-9403": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-9204-3158": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-3859-6721": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-7123-8940": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-5034-2196": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-8912-4657": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-2349-8012": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-6190-3485": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-4521-7036": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-9834-1250": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-1425-6893": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-7901-2348": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-3652-9104": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-5184-4791": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-8409-6231": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-2915-1847": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-6348-9052": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-1073-4589": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-7582-2361": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-4290-8114": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-9631-5028": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-3145-7890": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-6824-1359": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-1950-6423": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-5781-9204": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-8342-3617": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-2409-7851": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-6123-4908": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-9450-2136": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-3812-6594": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-7204-1835": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-5619-8402": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-1390-4762": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-8045-2913": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-4921-6380": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-9182-3546": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-2753-9014": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-6401-1289": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-3590-7824": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-7814-5390": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-1263-9475": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-5309-2814": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-8942-6031": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-2475-1598": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-6920-4183": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-4158-7302": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-9034-2651": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-3621-8940": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-7450-1296": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-1892-5437": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-5234-8091": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-8610-3452": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-2983-6140": { type: "vinhvien", name: "Key Vĩnh Viễn" },
+            "AIMLOCK-SAE-1579-2468": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8024-5193": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3471-9062": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-5920-1834": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9046-2715": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2183-6490": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7652-3081": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-4319-8924": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6890-1452": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1235-7806": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-5412-9630": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8903-1425": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2641-7890": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7320-4159": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3819-6042": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6105-2834": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9452-1783": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2081-5694": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7530-3124": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-4291-8056": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1642-9305": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8159-2470": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-5304-6189": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9721-4035": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2860-1592": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6419-7248": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3152-8901": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7904-2365": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-4581-6104": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9230-1487": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1395-5820": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6084-2913": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3421-7650": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8512-4093": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2109-6741": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7640-1825": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-4912-3560": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9051-8234": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1723-6409": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6380-2157": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2591-9043": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8142-3760": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-5064-1289": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7420-6912": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3801-4523": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9251-1604": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1460-7832": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6712-3095": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2945-8120": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8304-5419": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-5192-2634": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7083-1490": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3610-9842": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6524-4071": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1209-6351": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8741-2508": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-4035-7914": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9582-1326": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2314-6085": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7160-4921": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-5492-1703": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8231-3850": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1940-7261": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6905-2418": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3284-9150": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7812-5364": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-4560-1092": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9310-6425": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1683-2791": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6021-8540": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3742-1269": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8451-3094": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2190-7631": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7043-5208": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-4812-1946": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9605-2831": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1350-6794": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6214-4150": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3092-8921": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8910-3465": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-5731-1024": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2405-6582": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7321-9408": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-4190-2856": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9540-1632": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1823-7041": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6481-3290": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3104-8519": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8092-1463": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-5264-6701": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2615-4093": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7531-9218": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-4903-1582": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9024-3740": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1542-8309": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6710-2495": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3380-6124": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8194-1052": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-5032-7841": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2751-4960": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7204-3589": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-4415-9203": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9830-1672": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1192-6430": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6504-2819": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3921-7054": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8420-1386": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-5142-9605": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2083-4712": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7691-2304": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-4309-8512": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9152-1940": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-1640-6283": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-6321-3754": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-2894-9012": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-8703-1456": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-5310-7241": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-7920-4108": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-3541-8692": { type: "3thang", name: "Key 3 Tháng" },
+            "AIMLOCK-SAE-9405-2513": { type: "3thang", name: "Key 3 Tháng" }
+        };
+
+        // Hàm dán key hỗ trợ iPhone (dùng Clipboard API hoặc thông báo nếu bị chặn quyền)
+        async function pasteKey() {
+            const input = document.getElementById("keyInput");
+            try {
+                if (navigator.clipboard && navigator.clipboard.readText) {
+                    const text = await navigator.clipboard.readText();
+                    input.value = text.trim();
+                    showNotification("Đã dán key thành công!", "on");
+                } else {
+                    throw new Error("Clipboard API not supported");
+                }
+            } catch (err) {
+                // Nếu trình duyệt/iOS chặn quyền đọc clipboard trực tiếp qua JS, ô input sẽ tự hiện pop-up dán native khi focus
+                input.focus();
+                showNotification("Hãy chạm vào ô nhập để dán!", "off");
+            }
+        }
+
+        function getDeviceID() {
+            let deviceId = localStorage.getItem("sae_device_id");
+            if (!deviceId) {
+                deviceId = 'DEV-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                localStorage.setItem("sae_device_id", deviceId);
+            }
+            return deviceId;
+        }
+
+        function addThreeMonths(dateString) {
+            const date = new Date(dateString);
+            date.setMonth(date.getMonth() + 3);
+            return date.toISOString().split('T')[0];
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            const savedKey = localStorage.getItem("sae_active_key");
+            const currentDevice = getDeviceID();
+
+            if (savedKey && DATABASE_KEYS.hasOwnProperty(savedKey)) {
+                const keyData = DATABASE_KEYS[savedKey];
+                const boundDevice = localStorage.getItem("bound_" + savedKey);
+                const expiryDate = localStorage.getItem("expiry_" + savedKey);
+
+                if (keyData.type === "3thang" && expiryDate) {
+                    const today = new Date().toISOString().split('T')[0];
+                    if (today > expiryDate) {
+                        return;
+                    }
+                }
+
+                if (!boundDevice || boundDevice === currentDevice) {
+                    unlockMenu(keyData.name, expiryDate || "Vĩnh viễn");
+                }
+            }
+        });
+
+        function verifyKey() {
+            const userInput = document.getElementById("keyInput").value.trim();
+            const currentDevice = getDeviceID();
+
+            if (!DATABASE_KEYS.hasOwnProperty(userInput)) {
+                showNotification("Key không tồn tại hoặc không hợp lệ!", "off");
+                return;
+            }
+
+            if (localStorage.getItem("consumed_" + userInput)) {
+                showNotification("Key này đã được sử dụng!", "off");
+                return;
+            }
+
+            const keyData = DATABASE_KEYS[userInput];
+            const today = new Date().toISOString().split('T')[0];
+            let expiryDate = localStorage.getItem("expiry_" + userInput);
+
+            if (keyData.type === "vinhvien") {
+                expiryDate = "Vĩnh viễn";
+            } else {
+                if (!expiryDate) {
+                    if (keyData.type === "3thang") {
+                        expiryDate = addThreeMonths(today);
+                    } else if (keyData.type === "1thang") {
+                        const date = new Date(today);
+                        date.setMonth(date.getMonth() + 1);
+                        expiryDate = date.toISOString().split('T')[0];
+                    }
+                } else {
+                    if (today > expiryDate) {
+                        showNotification("Key này đã hết hạn!", "off");
+                        return;
+                    }
+                }
+            }
+
+            const existingBoundDevice = localStorage.getItem("bound_" + userInput);
+            if (existingBoundDevice && existingBoundDevice !== currentDevice) {
+                showNotification("Key này đã được dùng trên thiết bị khác!", "off");
+                return;
+            }
+
+            localStorage.setItem("consumed_" + userInput, "1");
+            localStorage.setItem("bound_" + userInput, currentDevice);
+            localStorage.setItem("expiry_" + userInput, expiryDate);
+            localStorage.setItem("sae_active_key", userInput);
+
+            showNotification(`Xác nhận thành công (${keyData.name})!`, "on");
+            setTimeout(() => {
+                unlockMenu(keyData.name, expiryDate);
+            }, 500);
+        }
+
+        function unlockMenu(keyName, expiryDate) {
+            const keyModal = document.getElementById("keySystemModal");
+            const modMenu = document.getElementById("modMenu");
+
+            document.getElementById("keyTypeBadge").innerText = `Gói: ${keyName}`;
+            document.getElementById("expiryBadge").innerText = `HSD: ${expiryDate}`;
+            
+            keyModal.style.opacity = "0";
+            keyModal.style.transform = "scale(0.9)";
+            setTimeout(() => {
+                keyModal.style.display = "none";
+                modMenu.classList.add("unlocked");
+            }, 300);
+        }
+
+        function getKeyAlert(e) {
+            e.preventDefault();
+            alert("Liên hệ Admin Zalo: 0905645797 để mua Key độc quyền!");
+        }
+
+        setInterval(() => {
+            const randomFps = Math.floor(Math.random() * (120 - 90 + 1)) + 90;
+            const fpsBadge = document.getElementById("fpsBadge");
+            if(fpsBadge) fpsBadge.innerText = randomFps + " FPS";
+        }, 800);
+
+        function triggerCardClick(event, checkboxId) {
+            const card = event.currentTarget;
+            const checkbox = document.getElementById(checkboxId);
+            
+            checkbox.checked = !checkbox.checked;
+            
+            if(checkboxId === 'mainAimlockToggle') {
+                toggleMainAimlock(checkbox.checked);
+            } else {
+                const fName = card.querySelector('.f-name').innerText;
+                toggleFeature(fName, checkbox.checked);
+            }
+
+            const circle = document.createElement("span");
+            const diameter = Math.max(card.clientWidth, card.clientHeight);
+            const radius = diameter / 2;
+
+            circle.style.width = circle.style.height = `${diameter}px`;
+            circle.style.left = `${event.clientX - card.getBoundingClientRect().left - radius}px`;
+            circle.style.top = `${event.clientY - card.getBoundingClientRect().top - radius}px`;
+            circle.classList.add("ripple");
+
+            const existingRipple = card.getElementsByClassName("ripple")[0];
+            if (existingRipple) existingRipple.remove();
+
+            card.appendChild(circle);
+        }
+
+        function showNotification(message, type) {
+            const toast = document.getElementById("toast");
+            const toastText = document.getElementById("toastText");
+            const toastDot = document.getElementById("toastDot");
+            const overlay = document.getElementById("fullscreenOverlay");
+
+            toastText.innerHTML = message;
+
+            if (type === 'on') {
+                toastDot.style.background = "#2ed573";
+                toastDot.style.boxShadow = "0 0 10px #2ed573";
+                toast.style.borderColor = "rgba(46, 213, 115, 0.3)";
+                overlay.style.background = "radial-gradient(circle, rgba(46,213,115,0.15) 0%, rgba(0,0,0,0) 70%)";
+                overlay.style.opacity = "1";
+            } else {
+                toastDot.style.background = "#ff3838";
+                toastDot.style.boxShadow = "0 0 10px #ff3838";
+                toast.style.borderColor = "rgba(255, 56, 56, 0.3)";
+                overlay.style.background = "radial-gradient(circle, rgba(255,56,56,0.15) 0%, rgba(0,0,0,0) 70%)";
+                overlay.style.opacity = "1";
+            }
+
+            setTimeout(() => { overlay.style.opacity = "0"; }, 300);
+            toast.className = "show";
+            
+            clearTimeout(window.toastTimeout);
+            window.toastTimeout = setTimeout(function(){ toast.className = ""; }, 2000);
+        }
+
+        function toggleMainAimlock(isChecked) {
+            const subFeatures = document.getElementById("subFeatures");
+            if (isChecked) {
+                subFeatures.classList.add("show-sub");
+                showNotification("Đã BẬT: SHADOW AIMLOCK", "on");
+            } else {
+                subFeatures.classList.remove("show-sub");
+                showNotification("Đã TẮT: SHADOW AIMLOCK", "off");
+            }
+        }
+
+        function toggleFeature(featureName, isChecked) {
+            if (isChecked) {
+                showNotification("Đã BẬT: " + featureName, "on");
+            } else {
+                showNotification("Đã TẮT: " + featureName, "off");
+            }
+        }
+    </script>
+
+</body>
+</html>
