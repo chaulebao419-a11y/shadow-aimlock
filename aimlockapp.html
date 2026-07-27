@@ -615,6 +615,29 @@
             "DAT-T2V-0G3": { type: "1thang", name: "Key 1 Tháng" }
         };
 
+        const TYPE_NAMES = { "v": "vinhvien", "t": "3thang", "o": "1thang" };
+        const NAMES = { "vinhvien": "Key Vĩnh Viễn", "3thang": "Key 3 Tháng", "1thang": "Key 1 Tháng" };
+        let externalKeys = null;
+
+        async function loadExternalKeys() {
+            try {
+                const res = await fetch("keys.json");
+                externalKeys = await res.json();
+            } catch (e) {
+                console.log("No external keys loaded, using built-in database only");
+            }
+        }
+        loadExternalKeys();
+
+        function getKeyData(key) {
+            if (DATABASE_KEYS.hasOwnProperty(key)) return DATABASE_KEYS[key];
+            if (externalKeys && externalKeys.hasOwnProperty(key)) {
+                const t = TYPE_NAMES[externalKeys[key]] || "vinhvien";
+                return { type: t, name: NAMES[t] };
+            }
+            return null;
+        }
+
         // Hàm dán key hỗ trợ iPhone (dùng Clipboard API hoặc thông báo nếu bị chặn quyền)
         async function pasteKey() {
             const input = document.getElementById("keyInput");
@@ -652,8 +675,9 @@
             const savedKey = localStorage.getItem("sae_active_key");
             const currentDevice = getDeviceID();
 
-            if (savedKey && DATABASE_KEYS.hasOwnProperty(savedKey)) {
-                const keyData = DATABASE_KEYS[savedKey];
+            if (savedKey) {
+                const keyData = getKeyData(savedKey);
+                if (!keyData) return;
                 const boundDevice = localStorage.getItem("bound_" + savedKey);
                 const expiryDate = localStorage.getItem("expiry_" + savedKey);
 
@@ -674,7 +698,8 @@
             const userInput = document.getElementById("keyInput").value.trim();
             const currentDevice = getDeviceID();
 
-            if (!DATABASE_KEYS.hasOwnProperty(userInput)) {
+            const keyData = getKeyData(userInput);
+            if (!keyData) {
                 showNotification("Key không tồn tại hoặc không hợp lệ!", "off");
                 return;
             }
@@ -683,8 +708,6 @@
                 showNotification("Key này đã được sử dụng!", "off");
                 return;
             }
-
-            const keyData = DATABASE_KEYS[userInput];
             const today = new Date().toISOString().split('T')[0];
             let expiryDate = localStorage.getItem("expiry_" + userInput);
 
