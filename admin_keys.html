@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Key Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a10;
+            color: #fff;
+            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container { max-width: 600px; width: 100%; }
+        h1 { font-size: 18px; margin: 20px 0; color: #ff3838; }
+        .card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.4);
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        button {
+            background: linear-gradient(135deg, #ff3838, #b31414);
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+        button:hover { opacity: 0.9; }
+        button.secondary { background: rgba(255,255,255,0.08); }
+        .key-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .key-item .del { color: #ff3838; cursor: pointer; padding: 4px; }
+        .key-item .type-badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255,56,56,0.15);
+            color: #ff9f43;
+        }
+        .actions { display: flex; gap: 8px; }
+        .actions button { font-size: 12px; padding: 8px; }
+        .hidden { display: none; }
+        #login { margin-top: 40px; }
+        #exportArea {
+            width: 100%;
+            min-height: 100px;
+            font-family: monospace;
+            font-size: 11px;
+            padding: 8px;
+        }
+        .copy-btn { background: rgba(46,213,115,0.2); color: #2ed573; }
+        .stats { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>ADMIN KEY GENERATOR</h1>
+
+    <div id="login" class="card">
+        <input type="password" id="passwordInput" placeholder="Enter admin password">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="mainPanel" class="hidden">
+        <div class="card">
+            <div style="display:flex; gap:8px; align-items:center;">
+                <select id="keyType" style="margin:0; width:auto; flex:1;">
+                    <option value="vinhvien">Vĩnh Viễn</option>
+                    <option value="3thang">3 Tháng</option>
+                </select>
+                <button onclick="generateKey()" style="width:auto; white-space:nowrap; padding: 10px 16px;">Generate Key</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="stats" id="stats">Total keys: 0</div>
+            <div id="keyList"></div>
+        </div>
+
+        <div class="card">
+            <div class="actions">
+                <button class="secondary" onclick="exportJson()">Export JSON</button>
+                <button class="copy-btn" onclick="exportHtml()">Export for HTML</button>
+                <button class="secondary" onclick="clearAll()" style="color:#ff3838;">Clear All</button>
+            </div>
+            <textarea id="exportArea" readonly placeholder="Export data will appear here..."></textarea>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ADMIN_PASSWORD = "admin123";
+    const STORAGE_KEY = "admin_generated_keys";
+
+    function loadKeys() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        } catch { return {}; }
+    }
+
+    function saveKeys(keys) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
+    }
+
+    function generateKey() {
+        const digits = () => Math.floor(1000 + Math.random() * 9000).toString();
+        return `AIMLOCK-SAE-${digits()}-${digits()}`;
+    }
+
+    function login() {
+        const pwd = document.getElementById("passwordInput").value;
+        if (pwd === ADMIN_PASSWORD) {
+            document.getElementById("login").classList.add("hidden");
+            document.getElementById("mainPanel").classList.remove("hidden");
+            renderKeys();
+        } else {
+            alert("Wrong password!");
+        }
+    }
+
+    function renderKeys() {
+        const keys = loadKeys();
+        const list = document.getElementById("keyList");
+        const stats = document.getElementById("stats");
+        const count = Object.keys(keys).length;
+        stats.textContent = `Total keys: ${count} | Vinhvien: ${Object.values(keys).filter(k => k.type === 'vinhvien').length} | 3thang: ${Object.values(keys).filter(k => k.type === '3thang').length}`;
+
+        if (count === 0) {
+            list.innerHTML = '<div style="color:#94a3b8; font-size:12px; text-align:center; padding:10px;">No keys yet</div>';
+            return;
+        }
+
+        let html = '';
+        for (const [key, data] of Object.entries(keys)) {
+            const typeLabel = data.type === 'vinhvien' ? 'Vinhvien' : '3 Thang';
+            html += `<div class="key-item">
+                <span>${key}</span>
+                <span style="display:flex; align-items:center; gap:8px;">
+                    <span class="type-badge">${typeLabel}</span>
+                    <span class="del" onclick="deleteKey('${key}')">✕</span>
+                </span>
+            </div>`;
+        }
+        list.innerHTML = html;
+    }
+
+    function generateKey() {
+        const type = document.getElementById("keyType").value;
+        const keys = loadKeys();
+        let newKey = generateKey();
+        while (keys[newKey]) newKey = generateKey();
+
+        const typeName = type === 'vinhvien' ? 'Key Vĩnh Viễn' : 'Key 3 Tháng';
+        keys[newKey] = { type, name: typeName };
+        saveKeys(keys);
+        renderKeys();
+    }
+
+    function deleteKey(key) {
+        const keys = loadKeys();
+        delete keys[key];
+        saveKeys(keys);
+        renderKeys();
+    }
+
+    function clearAll() {
+        if (confirm("Delete all keys?")) {
+            localStorage.removeItem(STORAGE_KEY);
+            renderKeys();
+            document.getElementById("exportArea").value = '';
+        }
+    }
+
+    function exportJson() {
+        const keys = loadKeys();
+        document.getElementById("exportArea").value = JSON.stringify(keys, null, 2);
+    }
+
+    function exportHtml() {
+        const keys = loadKeys();
+        const lines = [];
+        for (const [k, v] of Object.entries(keys)) {
+            lines.push(`            "${k}": { "type": "${v.type}", "name": "${v.name}" }`);
+        }
+        document.getElementById("exportArea").value = lines.join(",\n");
+    }
+</script>
+</body>
+</html>
