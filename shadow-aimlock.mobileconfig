@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>FullScreen</key><true/>
+            <key>IsRemovable</key><true/>
+            <key>Label</key><string>Shadow AimLock</string>
+            <key>PayloadDescription</key><string>Shadow AimLock shortcut</string>
+            <key>PayloadDisplayName</key><string>Shadow AimLock</string>
+            <key>PayloadIdentifier</key><string>com.shadow.aimlock.webclip</string>
+            <key>PayloadType</key><string>com.apple.webClip.managed</string>
+            <key>PayloadUUID</key><string>41f849e3-958f-48c2-a786-d7a8960d78e1</string>
+            <key>PayloadVersion</key><integer>1</integer>
+            <key>Precomposed</key><true/>
+            <key>URL</key><string>https://chaulebao419-a11y.github.io/shadow-aimlock/</string>
+            <key>Icon</key><data>iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAPISURBVHhe7djBcdtWFEBRbTSjsXtIIy7Da1ficR1auwL34FXqUCPMKIpiB/+DBDigZnJ1FmdDAaAWF48PuPvw4Y8TVNwtP4D/M0GTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGT0g/6y8/T3Z+nVfdfJuds9PA4Xu9vj9+GY3kb2aA/fn0aQzvj/uvn4RrnfTvdT67z4ufpYTiet5AMem/Mr3ZFfcPJz/V6QV8I7byn08OnyTUnVteNVz++nz5OzuO2ckFPQ5vutJ9PDz+2Hrvw6fti3Xg63T8ufxW23xwcJxb0uNeeXyMmUW+YrMNK83zOEPml7+YW3nnQ1xhvgpfvGD/fcnNwrFjQk6iO/ukfJvGv6w+T++jv5qJY0Cs79D+OePMwRPv7FB5i37iTc5hc0NOoZq4K7dJKM/uF8E76LfWCfrbz1d3mPXu47iTW4ZhjfhnYphn0s62Tekd4wzoznfLjFJ8fxy10g361M+z1aT2GunYDDOHPJjk30Q/6d5N1YDR/MzE8DJ6LdPI96zcKR3pfQf/uzOQe45s97O3knfSbeL9B/2tcJYad90z8280nP8cKBT2ZosswVww77+K8cd24zjj5OVoo6Hl4aw9uv1ya0JO/X8vacXOpoFdXg7VJPXl4e/afm2ByzOWb5MUw+Xecy3VaQa9EtMtiio7XO/N2Y2lyM6zeXBwiF/R0l95s+eA2rhv79uDx/F03BLsFg34xTtZLxtDGnXwZ/GWz/8PacTvZoF+NUS6srgCTSX/NQ91sr7/mOmySD5r3RdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCk/AW9DM5xFWe5+gAAAABJRU5ErkJggg==</data>
+        </dict>
+    </array>
+    <key>PayloadDescription</key><string>Cấu hình cài Shadow AimLock như app trên iPhone</string>
+    <key>PayloadDisplayName</key><string>Shadow AimLock</string>
+    <key>PayloadIdentifier</key><string>com.shadow.aimlock.config</string>
+    <key>PayloadRemovalDisallowed</key><false/>
+    <key>PayloadType</key><string>Configuration</string>
+    <key>PayloadUUID</key><string>a4fd8368-ce74-4d9a-b049-953cf62cb350</string>
+    <key>PayloadVersion</key><integer>1</integer>
+</dict>
+</plist>
