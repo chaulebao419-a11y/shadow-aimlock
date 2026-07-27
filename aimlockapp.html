@@ -497,7 +497,7 @@
             <input type="text" id="keyInput" class="key-input" placeholder="DAT-XXX-XXX">
             <button type="button" class="paste-btn" onclick="pasteKey()" title="Dán Key">📋</button>
         </div>
-        <button class="key-btn" id="verifyBtn" onclick="verifyKey()">XÁC NHẬN KÍCH HOẠT</button>
+        <button class="key-btn" id="verifyBtn" onclick="verifyKey()" disabled>ĐANG TẢI KEY...</button>
         <a href="#" class="get-key-link" onclick="getKeyAlert(event)">
             <span>🔑</span> Lấy Key Truy Cập Tại Đây
         </a>
@@ -603,6 +603,7 @@
         <span id="toastText">Thông báo hệ thống</span>
     </div>
 
+    <script src="keys.js"></script>
     <script>
         const DATABASE_KEYS = {
             "DAT-A7K-3B9": { type: "vinhvien", name: "Key Vĩnh Viễn" },
@@ -617,25 +618,9 @@
 
         const TYPE_NAMES = { "v": "vinhvien", "t": "3thang", "o": "1thang" };
         const NAMES = { "vinhvien": "Key Vĩnh Viễn", "3thang": "Key 3 Tháng", "1thang": "Key 1 Tháng" };
-        let externalKeys = null;
-        let keysLoaded = false;
 
-        async function loadExternalKeys() {
-            try {
-                const res = await fetch("keys.json");
-                externalKeys = await res.json();
-                console.log("Loaded " + Object.keys(externalKeys).length + " external keys");
-            } catch (e) {
-                console.log("No external keys loaded");
-            }
-            keysLoaded = true;
-            document.querySelector(".key-btn").textContent = "XÁC NHẬN KÍCH HOẠT";
-            document.querySelector(".key-btn").style.opacity = "1";
-            document.querySelector(".key-btn").disabled = false;
-        }
-        document.querySelector(".key-btn").textContent = "ĐANG TẢI KEY...";
-        document.querySelector(".key-btn").style.opacity = "0.5";
-        loadExternalKeys();
+        document.getElementById("verifyBtn").textContent = "XÁC NHẬN KÍCH HOẠT";
+        document.getElementById("verifyBtn").disabled = false;
 
         function getKeyData(key) {
             if (DATABASE_KEYS.hasOwnProperty(key)) return DATABASE_KEYS[key];
@@ -706,14 +691,7 @@
             const userInput = document.getElementById("keyInput").value.trim();
             const currentDevice = getDeviceID();
 
-            let keyData = getKeyData(userInput);
-            if (!keyData && !keysLoaded) {
-                showNotification("Đang tải dữ liệu keys, vui lòng đợi...", "off");
-                return;
-            }
-            if (!keyData && externalKeys) {
-                keyData = getKeyData(userInput);
-            }
+            const keyData = getKeyData(userInput);
             if (!keyData) {
                 showNotification("Key không tồn tại hoặc không hợp lệ!", "off");
                 return;
