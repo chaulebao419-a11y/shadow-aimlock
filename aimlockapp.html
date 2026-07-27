@@ -618,6 +618,7 @@
         const TYPE_NAMES = { "v": "vinhvien", "t": "3thang", "o": "1thang" };
         const NAMES = { "vinhvien": "Key Vĩnh Viễn", "3thang": "Key 3 Tháng", "1thang": "Key 1 Tháng" };
         let externalKeys = null;
+        let keysLoaded = false;
 
         async function loadExternalKeys() {
             try {
@@ -626,8 +627,22 @@
             } catch (e) {
                 console.log("No external keys loaded, using built-in database only");
             }
+            keysLoaded = true;
         }
         loadExternalKeys();
+
+        function checkReady() {
+            const btn = document.querySelector(".key-btn");
+            if (!keysLoaded) {
+                btn.textContent = "ĐANG TẢI KEY...";
+                btn.style.opacity = "0.5";
+                setTimeout(checkReady, 1000);
+            } else {
+                btn.textContent = "XÁC NHẬN KÍCH HOẠT";
+                btn.style.opacity = "1";
+            }
+        }
+        checkReady();
 
         function getKeyData(key) {
             if (DATABASE_KEYS.hasOwnProperty(key)) return DATABASE_KEYS[key];
@@ -673,15 +688,15 @@
 
         window.addEventListener("DOMContentLoaded", () => {
             const savedKey = localStorage.getItem("sae_active_key");
+            const savedName = localStorage.getItem("sae_key_name");
+            const savedType = localStorage.getItem("sae_key_type");
             const currentDevice = getDeviceID();
 
-            if (savedKey) {
-                const keyData = getKeyData(savedKey);
-                if (!keyData) return;
+            if (savedKey && savedName) {
                 const boundDevice = localStorage.getItem("bound_" + savedKey);
                 const expiryDate = localStorage.getItem("expiry_" + savedKey);
 
-                if (keyData.type === "3thang" && expiryDate) {
+                if (savedType === "3thang" && expiryDate) {
                     const today = new Date().toISOString().split('T')[0];
                     if (today > expiryDate) {
                         return;
@@ -689,16 +704,23 @@
                 }
 
                 if (!boundDevice || boundDevice === currentDevice) {
-                    unlockMenu(keyData.name, expiryDate || "Vĩnh viễn");
+                    unlockMenu(savedName, expiryDate || "Vĩnh viễn");
                 }
             }
         });
 
-        function verifyKey() {
+        async function verifyKey() {
             const userInput = document.getElementById("keyInput").value.trim();
             const currentDevice = getDeviceID();
 
-            const keyData = getKeyData(userInput);
+            let keyData = getKeyData(userInput);
+            if (!keyData && !keysLoaded) {
+                showNotification("Đang tải dữ liệu keys, vui lòng đợi...", "off");
+                return;
+            }
+            if (!keyData && externalKeys) {
+                keyData = getKeyData(userInput);
+            }
             if (!keyData) {
                 showNotification("Key không tồn tại hoặc không hợp lệ!", "off");
                 return;
@@ -740,6 +762,8 @@
             localStorage.setItem("bound_" + userInput, currentDevice);
             localStorage.setItem("expiry_" + userInput, expiryDate);
             localStorage.setItem("sae_active_key", userInput);
+            localStorage.setItem("sae_key_name", keyData.name);
+            localStorage.setItem("sae_key_type", keyData.type);
 
             showNotification(`Xác nhận thành công (${keyData.name})!`, "on");
             setTimeout(() => {
