@@ -497,7 +497,7 @@
             <input type="text" id="keyInput" class="key-input" placeholder="DAT-XXX-XXX">
             <button type="button" class="paste-btn" onclick="pasteKey()" title="Dán Key">📋</button>
         </div>
-        <button class="key-btn" onclick="verifyKey()">XÁC NHẬN KÍCH HOẠT</button>
+        <button class="key-btn" id="verifyBtn" onclick="verifyKey()">XÁC NHẬN KÍCH HOẠT</button>
         <a href="#" class="get-key-link" onclick="getKeyAlert(event)">
             <span>🔑</span> Lấy Key Truy Cập Tại Đây
         </a>
@@ -622,17 +622,19 @@
 
         async function loadExternalKeys() {
             try {
-                showNotification("Đang tải cơ sở dữ liệu keys...", "off");
                 const res = await fetch("keys.json");
                 externalKeys = await res.json();
-                showNotification("Đã tải xong " + Object.keys(externalKeys).length.toLocaleString() + " keys!", "on");
+                console.log("Loaded " + Object.keys(externalKeys).length + " external keys");
             } catch (e) {
-                console.log("No external keys loaded, using built-in database only");
+                console.log("No external keys loaded");
             }
             keysLoaded = true;
             document.querySelector(".key-btn").textContent = "XÁC NHẬN KÍCH HOẠT";
             document.querySelector(".key-btn").style.opacity = "1";
+            document.querySelector(".key-btn").disabled = false;
         }
+        document.querySelector(".key-btn").textContent = "ĐANG TẢI KEY...";
+        document.querySelector(".key-btn").style.opacity = "0.5";
         loadExternalKeys();
 
         function getKeyData(key) {
