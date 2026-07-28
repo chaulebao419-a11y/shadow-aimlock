@@ -1,0 +1,25 @@
+KEY                  TYPE           
+-----------------------------------
+DAT-A7K-3B9          vinhvien       
+DAT-X9M-2R4          vinhvien       
+DAT-K5P-8N1          vinhvien       
+DAT-W6J-4D8          3thang         
+DAT-Z3L-7F2          3thang         
+DAT-B8Q-1C6          3thang         
+DAT-Y4H-5E9          1thang         
+DAT-T2V-0G3          1thang         
+DAT-H1T-9X2          10gio          
+DAT-H2K-4M7          10gio          
+DAT-H3P-8R1          10gio          
+DAT-H4W-6D9          10gio          
+DAT-H5L-0F3          10gio          
+DAT-F1A-8X2          5gio           
+DAT-F2K-3M7          5gio           
+DAT-F3P-9R1          5gio           
+DAT-F4W-5D9          5gio           
+DAT-F5L-1F3          5gio           
+DAT-F6T-7X4          5gio           
+DAT-F7N-2B8          5gio           
+DAT-F8R-6Y1          5gio           
+DAT-F9H-4Z0          5gio           
+DAT-F0L-8C6          5gio           
