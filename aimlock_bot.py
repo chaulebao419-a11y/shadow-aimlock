@@ -204,8 +204,8 @@ async def export_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_document(document="_export.json", filename="keys_export.json")
 
 def main():
-    token = "7970298273:AAE7QFYafp4G3a1QY3W7sCHSV6DjPTcQ3uA"
-    app = Application.builder().token(token).build()
+    from config import BOT_TOKEN
+    app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("myid", myid))

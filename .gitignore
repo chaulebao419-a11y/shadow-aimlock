@@ -2,3 +2,5 @@ node_modules/
 .opencode/
 *.pyc
 __pycache__/
+
+config.py
