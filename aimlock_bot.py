@@ -124,9 +124,15 @@ async def genkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def genkey_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except Exception:
+        pass
     if not is_admin(query.from_user.id):
-        await query.edit_message_text("❌ Bạn không phải Admin.")
+        try:
+            await query.edit_message_text("❌ Bạn không phải Admin.")
+        except Exception:
+            pass
         return
 
     key_type = query.data[2:]
@@ -135,13 +141,16 @@ async def genkey_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keys = load_keys()
     keys[key] = code
     save_keys(keys)
-    await query.edit_message_text(
-        f"✅ <b>Key Created</b>\n"
-        f"<code>{key}</code>\n"
-        f"Loại: {TYPE_NAMES[key_type]}\n"
-        f"Tổng: {len(keys)} key",
-        parse_mode="HTML"
-    )
+    try:
+        await query.edit_message_text(
+            f"✅ <b>Key Created</b>\n"
+            f"<code>{key}</code>\n"
+            f"Loại: {TYPE_NAMES[key_type]}\n"
+            f"Tổng: {len(keys)} key",
+            parse_mode="HTML"
+        )
+    except Exception:
+        pass
 
 async def listkeys(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
@@ -216,6 +225,11 @@ def main():
     app.add_handler(CommandHandler("export", export_json))
     app.add_handler(CommandHandler("export_file", export_file))
     app.add_handler(CallbackQueryHandler(genkey_callback, pattern="^g_"))
+
+    async def error_handler(update, context):
+        logger.error(f"Update {update} caused error {context.error}")
+
+    app.add_error_handler(error_handler)
 
     logger.info("Bot started. Press Ctrl+C to stop.")
     app.run_polling()
