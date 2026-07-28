@@ -1,17 +1,44 @@
-import json
-import os
-import random
-import string
-import logging
-from datetime import datetime, timedelta
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+import json, os, random, sys, logging
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+from datetime import datetime
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-DATA_FILE = "keys.json"
-ADMIN_IDS = [7970298273]  # Thêm Telegram user ID của bạn vào đây, ví dụ: [123456789]
+DATA_FILE = "bot_keys.json"
+ADMIN_FILE = "admins.json"
+
+TYPE_MAP = {
+    "vinhvien": "v",
+    "3thang": "t",
+    "1thang": "o",
+    "10gio": "h",
+    "5gio": "f",
+    "7ngay": "s"
+}
+TYPE_NAMES = {
+    "vinhvien": "Vĩnh Viễn",
+    "3thang": "3 Tháng",
+    "1thang": "1 Tháng",
+    "10gio": "10 Giờ",
+    "5gio": "5 Giờ",
+    "7ngay": "7 Ngày"
+}
+
+CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+rng = random.SystemRandom()
+
+def load_admins():
+    if not os.path.exists(ADMIN_FILE):
+        return []
+    with open(ADMIN_FILE, "r") as f:
+        return json.load(f)
+
+def save_admins(admins):
+    with open(ADMIN_FILE, "w") as f:
+        json.dump(admins, f)
 
 def load_keys():
     if not os.path.exists(DATA_FILE):
@@ -21,134 +48,160 @@ def load_keys():
 
 def save_keys(keys):
     with open(DATA_FILE, "w") as f:
-        json.dump(keys, f, indent=2, ensure_ascii=False)
+        json.dump(keys, f, separators=(",", ":"))
 
-def generate_key():
-    parts = []
-    for _ in range(2):
-        part = "".join(random.choices(string.digits, k=4))
-        parts.append(part)
-    return f"AIMLOCK-SAE-{parts[0]}-{parts[1]}"
+def is_admin(user_id):
+    return user_id in load_admins()
+
+def gen_key():
+    return f"DAT-{rng.choice(CHARS)}{rng.choice(CHARS)}{rng.choice(CHARS)}-{rng.choice(CHARS)}{rng.choice(CHARS)}{rng.choice(CHARS)}"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "AIMLOCK Key Bot\n"
-        "Commands:\n"
-        "/genkey vinhvien - Generate permanent key\n"
-        "/genkey 3thang - Generate 3-month key\n"
-        "/listkeys - List all keys\n"
-        "/delkey <key> - Delete a key\n"
-        "/export - Export keys as JSON\n"
-        "/export_html - Export keys for HTML (paste into DATABASE_KEYS)"
+        "🤖 <b>Shadow AimLock Key Bot</b>\n\n"
+        "Lệnh:\n"
+        "/dangkiadmin - Đăng ký quyền Admin\n"
+        "/genkey - Tạo key (Admin)\n"
+        "/genkey &lt;loại&gt; - Tạo key nhanh (Admin)\n"
+        "/listkeys - Danh sách key (Admin)\n"
+        "/delkey &lt;key&gt; - Xóa key (Admin)\n"
+        "/myid - Xem ID Telegram của bạn",
+        parse_mode="HTML"
+    )
+
+async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"🆔 Your Telegram ID: <code>{update.effective_user.id}</code>", parse_mode="HTML")
+
+async def dangkiadmin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    admins = load_admins()
+    if user.id in admins:
+        await update.message.reply_text("✅ Bạn đã là Admin rồi!")
+        return
+    admins.append(user.id)
+    save_admins(admins)
+    await update.message.reply_text(
+        f"🎉 <b>Đăng ký Admin thành công!</b>\n"
+        f"User: {user.first_name} (ID: {user.id})\n\n"
+        f"Dùng /genkey để tạo key.",
+        parse_mode="HTML"
     )
 
 async def genkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if ADMIN_IDS and user_id not in ADMIN_IDS:
-        await update.message.reply_text("Bạn không có quyền sử dụng lệnh này.")
+    if not is_admin(update.effective_user.id):
+        await update.message.reply_text("❌ Bạn không phải Admin. Dùng /dangkiadmin để đăng ký.")
         return
 
-    key_type = "vinhvien"
     if context.args:
-        if context.args[0] in ("vinhvien", "3thang"):
-            key_type = context.args[0]
-        else:
-            await update.message.reply_text("Sai định dạng. Dùng: /genkey vinhvien hoặc /genkey 3thang")
+        key_type = context.args[0].lower()
+        if key_type not in TYPE_MAP:
+            types = ", ".join(TYPE_MAP.keys())
+            await update.message.reply_text(f"❌ Sai loại. Chọn: {types}")
             return
+        code = TYPE_MAP[key_type]
+        key = gen_key()
+        keys = load_keys()
+        keys[key] = code
+        save_keys(keys)
+        await update.message.reply_text(
+            f"✅ <b>Key Created</b>\n"
+            f"<code>{key}</code>\n"
+            f"Loại: {TYPE_NAMES[key_type]}\n"
+            f"Tổng: {len(keys)} key",
+            parse_mode="HTML"
+        )
+        return
 
+    keyboard = [
+        [InlineKeyboardButton("♾ Vĩnh Viễn", callback_data="g_vinhvien")],
+        [InlineKeyboardButton("📅 3 Tháng", callback_data="g_3thang"),
+         InlineKeyboardButton("📅 1 Tháng", callback_data="g_1thang")],
+        [InlineKeyboardButton("⏰ 10 Giờ", callback_data="g_10gio"),
+         InlineKeyboardButton("⏰ 5 Giờ", callback_data="g_5gio")],
+        [InlineKeyboardButton("📆 7 Ngày", callback_data="g_7ngay")]
+    ]
+    await update.message.reply_text("Chọn loại key:", reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def genkey_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        await query.edit_message_text("❌ Bạn không phải Admin.")
+        return
+
+    key_type = query.data[2:]
+    code = TYPE_MAP[key_type]
+    key = gen_key()
     keys = load_keys()
-    new_key = generate_key()
-    while new_key in keys:
-        new_key = generate_key()
-
-    keys[new_key] = {
-        "type": key_type,
-        "name": "Key Vĩnh Viễn" if key_type == "vinhvien" else "Key 3 Tháng",
-        "created": datetime.now().isoformat()
-    }
+    keys[key] = code
     save_keys(keys)
-
-    await update.message.reply_text(
-        f"Key created:\n"
-        f"`{new_key}`\n"
-        f"Type: {keys[new_key]['name']}",
-        parse_mode="Markdown"
+    await query.edit_message_text(
+        f"✅ <b>Key Created</b>\n"
+        f"<code>{key}</code>\n"
+        f"Loại: {TYPE_NAMES[key_type]}\n"
+        f"Tổng: {len(keys)} key",
+        parse_mode="HTML"
     )
 
 async def listkeys(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if ADMIN_IDS and user_id not in ADMIN_IDS:
-        await update.message.reply_text("Bạn không có quyền sử dụng lệnh này.")
+    if not is_admin(update.effective_user.id):
+        await update.message.reply_text("❌ Bạn không phải Admin.")
         return
-
     keys = load_keys()
     if not keys:
-        await update.message.reply_text("No keys found.")
+        await update.message.reply_text("📂 Chưa có key nào.")
         return
-
-    msg_parts = [f"Total keys: {len(keys)}\n"]
-    for k, v in keys.items():
-        created = v.get("created", "unknown")[:10]
-        msg_parts.append(f"`{k}` | {v['name']} | {created}")
-        if len(msg_parts) > 40:
+    code_to_name = {v: k for k, v in TYPE_MAP.items()}
+    lines = [f"📂 <b>Danh sách key ({len(keys)}):</b>"]
+    for i, (k, v) in enumerate(keys.items()):
+        name = code_to_name.get(v, v)
+        lines.append(f"{i+1}. <code>{k}</code> - {name}")
+        if i >= 30:
+            lines.append(f"... và {len(keys) - 31} key nữa")
             break
-
-    await update.message.reply_text("\n".join(msg_parts), parse_mode="Markdown")
+    await update.message.reply_text("\n".join(lines), parse_mode="HTML")
 
 async def delkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if ADMIN_IDS and user_id not in ADMIN_IDS:
-        await update.message.reply_text("Bạn không có quyền sử dụng lệnh này.")
+    if not is_admin(update.effective_user.id):
+        await update.message.reply_text("❌ Bạn không phải Admin.")
         return
-
     if not context.args:
-        await update.message.reply_text("Usage: /delkey AIMLOCK-SAE-XXXX-XXXX")
+        await update.message.reply_text("Usage: /delkey DAT-XXX-XXX")
         return
-
     key = context.args[0].upper()
     keys = load_keys()
     if key in keys:
         del keys[key]
         save_keys(keys)
-        await update.message.reply_text(f"Deleted: `{key}`", parse_mode="Markdown")
+        await update.message.reply_text(f"✅ Deleted <code>{key}</code>", parse_mode="HTML")
     else:
-        await update.message.reply_text(f"Key not found: `{key}`", parse_mode="Markdown")
+        await update.message.reply_text(f"❌ Key not found: <code>{key}</code>", parse_mode="HTML")
 
-async def export_keys(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if ADMIN_IDS and user_id not in ADMIN_IDS:
-        await update.message.reply_text("Bạn không có quyền sử dụng lệnh này.")
+async def export_json(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        await update.message.reply_text("❌ Bạn không phải Admin.")
         return
-
     keys = load_keys()
     if not keys:
-        await update.message.reply_text("No keys to export.")
+        await update.message.reply_text("📂 Chưa có key nào.")
         return
+    output = json.dumps(keys, separators=(",", ":"))
+    await update.message.reply_text(f"<code>{output[:4000]}</code>", parse_mode="HTML")
+    if len(output) > 4000:
+        await update.message.reply_text("(Nội dung bị cắt - dùng /export_file để tải file)")
 
-    output = json.dumps(keys, indent=2, ensure_ascii=False)
-    await update.message.reply_text(f"```json\n{output}\n```", parse_mode="Markdown")
-
-async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    await update.message.reply_text(f"Your Telegram User ID: `{user_id}`", parse_mode="Markdown")
-
-async def export_html(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if ADMIN_IDS and user_id not in ADMIN_IDS:
-        await update.message.reply_text("Bạn không có quyền sử dụng lệnh này.")
+async def export_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_admin(update.effective_user.id):
+        await update.message.reply_text("❌ Bạn không phải Admin.")
         return
-
     keys = load_keys()
     if not keys:
-        await update.message.reply_text("No keys to export.")
+        await update.message.reply_text("📂 Chưa có key nào.")
         return
-
-    lines = []
-    for k, v in keys.items():
-        lines.append(f'            "{k}": {{ "type": "{v["type"]}", "name": "{v["name"]}" }}')
-    output = ",\n".join(lines)
-    text = f"Copy this into DATABASE_KEYS in aimlockapp.html:\n\n```\n{output}\n```"
-    await update.message.reply_text(text, parse_mode="Markdown")
+    output = json.dumps(keys, separators=(",", ":"))
+    with open("_export.json", "w", encoding="utf-8") as f:
+        f.write(output)
+    await update.message.reply_document(document="_export.json", filename="keys_export.json")
 
 def main():
     token = "7970298273:AAE7QFYafp4G3a1QY3W7sCHSV6DjPTcQ3uA"
@@ -156,11 +209,13 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("myid", myid))
+    app.add_handler(CommandHandler("dangkiadmin", dangkiadmin))
     app.add_handler(CommandHandler("genkey", genkey))
     app.add_handler(CommandHandler("listkeys", listkeys))
     app.add_handler(CommandHandler("delkey", delkey))
-    app.add_handler(CommandHandler("export", export_keys))
-    app.add_handler(CommandHandler("export_html", export_html))
+    app.add_handler(CommandHandler("export", export_json))
+    app.add_handler(CommandHandler("export_file", export_file))
+    app.add_handler(CallbackQueryHandler(genkey_callback, pattern="^g_"))
 
     logger.info("Bot started. Press Ctrl+C to stop.")
     app.run_polling()
