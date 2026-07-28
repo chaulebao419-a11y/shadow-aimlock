@@ -212,9 +212,19 @@ async def export_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f.write(output)
     await update.message.reply_document(document="_export.json", filename="keys_export.json")
 
+def get_token():
+    import os
+    token = os.environ.get("BOT_TOKEN")
+    if token:
+        return token
+    try:
+        from config import BOT_TOKEN
+        return BOT_TOKEN
+    except ImportError:
+        raise ValueError("No BOT_TOKEN found. Set env var or create config.py")
+
 def main():
-    from config import BOT_TOKEN
-    app = Application.builder().token(BOT_TOKEN).build()
+    app = Application.builder().token(get_token()).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("myid", myid))
