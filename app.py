@@ -1,4 +1,4 @@
-import os, threading, logging
+import os, threading, logging, time
 from flask import Flask, jsonify
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -15,11 +15,13 @@ def health():
     return jsonify({"status": "ok"})
 
 def run_bot():
-    try:
-        from aimlock_bot import main as bot_main
-        bot_main()
-    except Exception as e:
-        logger.error(f"Bot error: {e}")
+    from aimlock_bot import main as bot_main
+    while True:
+        try:
+            bot_main()
+        except Exception as e:
+            logger.error(f"Bot error: {e}")
+        time.sleep(5)
 
 threading.Thread(target=run_bot, daemon=True).start()
 

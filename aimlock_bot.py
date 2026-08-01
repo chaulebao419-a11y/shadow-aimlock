@@ -1,4 +1,4 @@
-import json, os, random, sys, logging
+﻿import json, os, random, sys, logging, hashlib, time
 
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -11,12 +11,16 @@ DATA_FILE = "bot_keys.json"
 ADMIN_FILE = "admins.json"
 
 TYPE_MAP = {
-    "vinhvien": "v",
-    "3thang": "t",
-    "1thang": "o",
-    "10gio": "h",
-    "5gio": "f",
-    "7ngay": "s"
+    "vinhvien": "6",
+    "3thang": "5",
+    "1thang": "3",
+    "10gio": "1",
+    "5gio": "1",
+    "7ngay": "2"
+}
+TYPE_DUR = {
+    "vinhvien": 0, "3thang": 2160, "1thang": 720,
+    "10gio": 10, "5gio": 5, "7ngay": 168
 }
 TYPE_NAMES = {
     "vinhvien": "Vĩnh Viễn",
@@ -27,8 +31,59 @@ TYPE_NAMES = {
     "7ngay": "7 Ngày"
 }
 
-CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-rng = random.SystemRandom()
+SALT = "AIMLOCK-2026-PRO"
+EPOCH_2020 = 1577836800
+B36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+RESERVE_URL = "https://aimlock-key-bot.chaulebao419.workers.dev/reserve"
+RESERVE_TOKEN = "ALB-2026-RESERVE-x9f2k7"
+_nonce_seed = random.SystemRandom().randint(0, 1295)
+_nonce_cnt = {}
+
+
+def _b36(n, length):
+    s = ""
+    for _ in range(length):
+        s = B36[n % 36] + s
+        n //= 36
+    return s
+
+
+def _checksum2(code, exp, nonce):
+    h = hashlib.md5(f"{SALT}-{code}-{exp}-{nonce}".encode()).hexdigest().upper()
+    return _b36(int(h[:6], 16) % 1296, 2)
+
+
+def _reserve(key):
+    """Hỏi máy chủ Cloudflare: key đã trùng (đã nhập/đã phát hành) thì False, chưa thì đặt trước True."""
+    import urllib.request
+    body = json.dumps({"key": key, "token": RESERVE_TOKEN}).encode()
+    req = urllib.request.Request(RESERVE_URL, data=body, headers={
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return json.loads(r.read().decode()).get("ok") is True
+    except Exception:
+        return True  # mạng lỗi -> chấp nhận (không chặn admin)
+
+
+def gen_key(key_type):
+    code = TYPE_MAP[key_type]
+    dur = TYPE_DUR[key_type]
+    exp = 0 if code == "6" else min(int((time.time() - EPOCH_2020) / 3600) + dur, 0xFF00)
+    kk = (code, exp)
+    c = _nonce_cnt.get(kk, _nonce_seed)
+    for attempt in range(1296):
+        nonce = _b36(c % 1296, 2)
+        flat = code + _b36(exp, 4) + nonce + _checksum2(code, exp, nonce)
+        key = "DAT-" + "-".join(flat[i:i + 3] for i in range(0, 9, 3))
+        c += 1
+        if _reserve(key):
+            _nonce_cnt[kk] = c
+            return key
+    raise RuntimeError(f"Hết key không trùng cho loại {key_type}")
+
 
 def load_admins():
     if not os.path.exists(ADMIN_FILE):
@@ -36,9 +91,11 @@ def load_admins():
     with open(ADMIN_FILE, "r") as f:
         return json.load(f)
 
+
 def save_admins(admins):
     with open(ADMIN_FILE, "w") as f:
         json.dump(admins, f)
+
 
 def load_keys():
     if not os.path.exists(DATA_FILE):
@@ -46,15 +103,15 @@ def load_keys():
     with open(DATA_FILE, "r") as f:
         return json.load(f)
 
+
 def save_keys(keys):
     with open(DATA_FILE, "w") as f:
         json.dump(keys, f, separators=(",", ":"))
 
+
 def is_admin(user_id):
     return user_id in load_admins()
 
-def gen_key():
-    return f"DAT-{rng.choice(CHARS)}{rng.choice(CHARS)}{rng.choice(CHARS)}-{rng.choice(CHARS)}{rng.choice(CHARS)}{rng.choice(CHARS)}"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -69,8 +126,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
 
+
 async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🆔 Your Telegram ID: <code>{update.effective_user.id}</code>", parse_mode="HTML")
+
 
 async def dangkiadmin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -87,6 +146,7 @@ async def dangkiadmin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
 
+
 async def genkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         await update.message.reply_text("❌ Bạn không phải Admin. Dùng /dangkiadmin để đăng ký.")
@@ -98,10 +158,9 @@ async def genkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
             types = ", ".join(TYPE_MAP.keys())
             await update.message.reply_text(f"❌ Sai loại. Chọn: {types}")
             return
-        code = TYPE_MAP[key_type]
-        key = gen_key()
+        key = gen_key(key_type)
         keys = load_keys()
-        keys[key] = code
+        keys[key] = TYPE_MAP[key_type]
         save_keys(keys)
         await update.message.reply_text(
             f"✅ <b>Key Created</b>\n"
@@ -122,6 +181,7 @@ async def genkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await update.message.reply_text("Chọn loại key:", reply_markup=InlineKeyboardMarkup(keyboard))
 
+
 async def genkey_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     try:
@@ -136,10 +196,9 @@ async def genkey_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     key_type = query.data[2:]
-    code = TYPE_MAP[key_type]
-    key = gen_key()
+    key = gen_key(key_type)
     keys = load_keys()
-    keys[key] = code
+    keys[key] = TYPE_MAP[key_type]
     save_keys(keys)
     try:
         await query.edit_message_text(
@@ -151,6 +210,7 @@ async def genkey_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception:
         pass
+
 
 async def listkeys(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
@@ -170,12 +230,13 @@ async def listkeys(update: Update, context: ContextTypes.DEFAULT_TYPE):
             break
     await update.message.reply_text("\n".join(lines), parse_mode="HTML")
 
+
 async def delkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         await update.message.reply_text("❌ Bạn không phải Admin.")
         return
     if not context.args:
-        await update.message.reply_text("Usage: /delkey DAT-XXX-XXX")
+        await update.message.reply_text("Usage: /delkey DAT-XXX-XXX-XXX")
         return
     key = context.args[0].upper()
     keys = load_keys()
@@ -185,6 +246,7 @@ async def delkey(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"✅ Deleted <code>{key}</code>", parse_mode="HTML")
     else:
         await update.message.reply_text(f"❌ Key not found: <code>{key}</code>", parse_mode="HTML")
+
 
 async def export_json(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
@@ -199,6 +261,7 @@ async def export_json(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(output) > 4000:
         await update.message.reply_text("(Nội dung bị cắt - dùng /export_file để tải file)")
 
+
 async def export_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         await update.message.reply_text("❌ Bạn không phải Admin.")
@@ -212,8 +275,8 @@ async def export_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f.write(output)
     await update.message.reply_document(document="_export.json", filename="keys_export.json")
 
+
 def get_token():
-    import os
     token = os.environ.get("BOT_TOKEN")
     if token:
         return token
@@ -222,6 +285,7 @@ def get_token():
         return BOT_TOKEN
     except ImportError:
         raise ValueError("No BOT_TOKEN found. Set env var or create config.py")
+
 
 def main():
     app = Application.builder().token(get_token()).build()
@@ -243,6 +307,7 @@ def main():
 
     logger.info("Bot started. Press Ctrl+C to stop.")
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()

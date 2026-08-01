@@ -1,0 +1,16 @@
+name = "aimlock-key-bot"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Tạo 2 KV namespace trên Dashboard hoặc bằng lệnh:
+#   wrangler kv namespace create KEYS
+#   wrangler kv namespace create ADMINS
+# rồi dán ID vào bên dưới
+
+[[kv_namespaces]]
+binding = "KEYS"
+id = "1fa0e2b456854701be8dc7bddf8d7437"
+
+[[kv_namespaces]]
+binding = "ADMINS"
+id = "0688c8b74c984ddf96d738c57eff94ab"
