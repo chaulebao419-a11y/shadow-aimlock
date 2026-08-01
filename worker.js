@@ -75,6 +75,22 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+async function genKeysBatch(env, keyType, count) {
+  const created = [];
+  for (let i = 0; i < count; i++) {
+    const key = await genUniqueKey(env);
+    await env.KEYS.put("k:" + key, TYPE_CODE[keyType]);
+    created.push(key);
+  }
+  return created;
+}
+
+function chunkArr(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
 async function handleMessage(update, env) {
   const msg = update.message;
   if (!msg || !msg.text) return;
@@ -124,6 +140,33 @@ async function handleMessage(update, env) {
     return;
   }
 
+  const pendingKey = "pending:" + userId;
+  const pending = await env.KEYS.get(pendingKey, "json");
+
+  if (pending && pending.type && /^\d+$/.test(text)) {
+    const count = Math.max(1, Math.min(100, parseInt(text, 10)));
+    await env.KEYS.delete(pendingKey);
+    const keyType = pending.type;
+    const created = await genKeysBatch(env, keyType, count);
+    const total = Object.keys(await listAllKeys(env)).length;
+    const header = `✅ <b>Tạo ${count} key ${TYPE_NAMES[keyType]}</b>\n`;
+    const chunks = chunkArr(created, 40);
+    for (let i = 0; i < chunks.length; i++) {
+      const body = chunks[i].map(k => `<code>${k}</code>`).join("\n");
+      await api(env, "sendMessage", {
+        chat_id: chatId,
+        text: (i === 0 ? header : "") + body,
+        parse_mode: "HTML"
+      });
+    }
+    await api(env, "sendMessage", {
+      chat_id: chatId,
+      text: `📦 Tổng key hiện có: ${total}`,
+      parse_mode: "HTML"
+    });
+    return;
+  }
+
   if (cmd === "/genkey") {
     if (args.length > 0) {
       const keyType = args[0].toLowerCase();
@@ -134,12 +177,10 @@ async function handleMessage(update, env) {
         });
         return;
       }
-      const key = await genUniqueKey(env);
-      await env.KEYS.put("k:" + key, TYPE_CODE[keyType]);
-      const keys = await listAllKeys(env);
+      await env.KEYS.put(pendingKey, JSON.stringify({ type: keyType }), { expirationTtl: 300 });
       await api(env, "sendMessage", {
         chat_id: chatId,
-        text: `✅ <b>Key Created</b>\n<code>${key}</code>\nLoại: ${TYPE_NAMES[keyType]}\nTổng: ${Object.keys(keys).length} key`,
+        text: `⌨️ Nhập <b>số lượng key</b> (1-100):\nLoại: ${TYPE_NAMES[keyType]}`,
         parse_mode: "HTML"
       });
       return;
@@ -222,17 +263,15 @@ async function handleCallback(update, env) {
   }
 
   const keyType = q.data.slice(2);
-  const key = await genUniqueKey(env);
-  await env.KEYS.put("k:" + key, TYPE_CODE[keyType]);
-  const keys = await listAllKeys(env);
   try {
     await api(env, "editMessageText", {
       chat_id: q.message.chat.id,
       message_id: q.message.message_id,
-      text: `✅ <b>Key Created</b>\n<code>${key}</code>\nLoại: ${TYPE_NAMES[keyType]}\nTổng: ${Object.keys(keys).length} key`,
+      text: `Đã chọn: ${TYPE_NAMES[keyType]}\n\n⌨️ Nhập <b>số lượng key</b> (1-100):`,
       parse_mode: "HTML"
     });
   } catch (e) {}
+  await env.KEYS.put("pending:" + userId, JSON.stringify({ type: keyType }), { expirationTtl: 300 });
 }
 
 export default {
